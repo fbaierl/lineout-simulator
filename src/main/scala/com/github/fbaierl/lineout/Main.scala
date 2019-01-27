@@ -35,7 +35,11 @@ object Main extends IOApp {
     IO(newState, newValue)
   }
 
-  def readTeam(): StateT[IO, Team, Player] = {
+
+
+  def readTeam(): IO[Team] = {
+
+    def teamIO: StateT[IO, Team, Team] =
       for {
         player <- liftIoIntoStateT(readPlayer())
         team   <- if (player.isEmpty) {
@@ -45,7 +49,9 @@ object Main extends IOApp {
                     _ <- addPlayerWithStateT(player.get)
                     _ <- readTeam()
                   } yield Unit
-      } yield team
+      } yield Unit
+
+    teamIO.run(Team(Nil))
   }
 
   /**
