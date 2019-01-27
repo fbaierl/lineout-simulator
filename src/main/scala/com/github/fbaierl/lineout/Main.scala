@@ -4,6 +4,8 @@ import cats.data.StateT
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 
+import scala.annotation.tailrec
+
 object Main extends IOApp {
 
   class InvalidInputError(msg: String)
@@ -18,7 +20,7 @@ object Main extends IOApp {
       _     <- liftIoIntoStateT (IO { println("--- Rugby Lineout Simulator ---") })
       _     <- liftIoIntoStateT (IO { println("-------------------------------") })
       _     <- liftIoIntoStateT (IO { println("First add 7 players to your team. ") })
-      team  <- readTeam()
+      team  <- readTeam(Team(Nil))
       _     <- liftIoIntoStateT (IO { println("Here is your team: " + team) })
 
     } yield ExitCode.Success
@@ -35,23 +37,18 @@ object Main extends IOApp {
     IO(newState, newValue)
   }
 
-
-
-  def readTeam(): IO[Team] = {
-
-    def teamIO: StateT[IO, Team, Team] =
+  def readTeam(curr: Team): StateT[IO, Team, Unit] = {
       for {
         player <- liftIoIntoStateT(readPlayer())
-        team   <- if (player.isEmpty) {
+        _      <- if(curr.players.size > 3)
+                    liftIoIntoStateT (IO(println("Enough players!!")))
+                  else if (player.isEmpty) {
                     liftIoIntoStateT(IO(println("WRONG INPUT - ENDING GAME")))  // quit on wrong input
-
                   } else for {
-                    _ <- addPlayerWithStateT(player.get)
-                    _ <- readTeam()
+                    t <- addPlayerWithStateT(player.get)
+                    _ <- readTeam(Team(curr.players :+ t))
                   } yield Unit
       } yield Unit
-
-    teamIO.run(Team(Nil))
   }
 
   /**
