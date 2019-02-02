@@ -2,38 +2,41 @@ package com.github.fbaierl.lineout
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
+import messages._
 
 object Main extends IOApp {
 
   class InvalidInputError(msg: String)
-
-  case class Player (name: String)
+  case class Player (name: String, canJump: Boolean, canLift: Boolean)
   case class Team (players: List[Player])
-  case class LineoutState ()
+  case class Formation (groups: List[Int])
 
-  def printWelcomeMessage: IO[Unit] = IO(println(
-    """
-      |--------------------------------------
-      |------ Rugby Lineout Simulator -------
-      |--------------------------------------
-      |-- First add 7 players to your team --
-        """
-    .stripMargin))
-
-  def printPlayerInputInstructions: IO[Unit] = IO(println(
-    """
-      |Input format:
-      |<name> [jump] [lift]
-      |The name of a player is mandatory and 'jump' and 'lift'
-      |are optional and describe the players capabilities."
-    """.stripMargin
-  ))
+  def premadeTeam: Team = Team(
+    Player("Evan", canJump = true, canLift = true) ::
+    Player("Sang", canJump = true, canLift = true) ::
+    Player("Duncan", canJump = true, canLift = true) ::
+    Player("Lyle", canJump = true, canLift = true) ::
+    Player("Barney", canJump = true, canLift = true) ::
+    Player("Dick", canJump = true, canLift = true) ::
+    Player("Franklyn", canJump = true, canLift = true) :: Nil
+  )
 
   def run(args: List[String]): IO[ExitCode] = for {
-      _     <- printWelcomeMessage
-      team  <- readTeam
-      _     <- IO { println("Here is your team: " + team) }
+      _       <- printWelcomeMessage
+      custom <- readCustomOrPreMadeTeamQuestion
+      team    <- if(custom) readTeam else IO(premadeTeam)
+      _       <- printTeam(team)
+      _       <- printOrganizePlayersInstructions
     } yield ExitCode.Success
+
+  /**
+    * Asks the user if he wants to build a custom team or use a premade one.
+    * @return true, if the user decided to use a custom team
+    */
+  def readCustomOrPreMadeTeamQuestion: IO[Boolean] = for {
+    _       <- printCustomOrPreMadeTeamQuestion
+    input   <- IO { scala.io.StdIn.readLine == "1" }
+  } yield input
 
   /**
     * Reads a team of 7 players from the command line.
@@ -80,7 +83,7 @@ object Main extends IOApp {
       result  <- IO { player match {
         case Right(p) =>  println("Player added: " + p)
           Some(p)
-        case Left(_)  =>  println("Invalid input! " + _)
+        case Left(_)  =>  println("Invalid input!")
           None } }
     } yield result
   }
@@ -91,10 +94,11 @@ object Main extends IOApp {
     * @return a Player or None
     */
   private def createPlayer(input: String): InvalidInputError Either Player = {
-    // TODO Player needs two additional fields (canJump, canLift)
-    input match {
-      case name => Player(name).asRight
-      case _    => new InvalidInputError("Could not parse: " + input).asLeft
+    input.toLowerCase.split(" ").toList match {
+      case name :: attributes if !name.isEmpty =>
+        Player(name, attributes.contains("jump"), attributes.contains("lift")).asRight
+      case _    =>
+        new InvalidInputError("Could not parse: " + input).asLeft
     }
   }
 
