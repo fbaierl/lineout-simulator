@@ -1,7 +1,7 @@
 package com.github.fbaierl.lineout
 
 import cats.effect.IO
-import com.github.fbaierl.lineout.Main.Team
+import com.github.fbaierl.lineout.Main.{Maneuver, Player}
 
 package object messages {
 
@@ -45,15 +45,17 @@ package object messages {
     """.stripMargin
   ))
 
-  def printTeam(team: Team): IO[Unit] = IO(println(
+  def printTeam(team: List[Player]): IO[Unit] = IO(println(
     s"""
       |--------------------------------------
       |-- Here is your team: ----------------
       |-- (name [canJump, canLift]) ---------
       |--------------------------------------
       |
-      |${team.players.map(p => p.name + " [" + (if(p.canJump) "Yes" else "No")+  ", " +  (if(p.canLift) "Yes" else "No") + "]")
+      |${team.map(p => p.name + " [" + (if(p.canJump) "Yes" else "No")+  ", " +  (if(p.canLift) "Yes" else "No") + "]")
           .mkString("\n")}
     """.stripMargin
   ))
+
+  def printManeuver(man: Maneuver): IO[Unit] = ???
 }

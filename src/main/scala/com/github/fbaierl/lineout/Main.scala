@@ -1,5 +1,6 @@
 package com.github.fbaierl.lineout
 
+import cats.data.Validated
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 import messages._
@@ -8,25 +9,35 @@ object Main extends IOApp {
 
   class InvalidInputError(msg: String)
   case class Player (name: String, canJump: Boolean, canLift: Boolean)
-  case class Team (players: List[Player])
+  case class Lineout (positions: List[Option[Player]])
   case class Formation (groups: List[Int])
+  case class Maneuver (moves: List[Move])
+  case class Move (player: Player, action: Action)
+  abstract class Action
+  case class Jump(isFake: Boolean) extends Action
+  case class GoTo(position: Int) extends Action
+  case class ManeuverInvalid(errorMessage: String)
 
-  def premadeTeam: Team = Team(
-    Player("Evan", canJump = true, canLift = true) ::
+  def premadeTeam: List[Player] =
+    Player("Evan", canJump = true, canLift = false) ::
     Player("Sang", canJump = true, canLift = true) ::
-    Player("Duncan", canJump = true, canLift = true) ::
-    Player("Lyle", canJump = true, canLift = true) ::
-    Player("Barney", canJump = true, canLift = true) ::
-    Player("Dick", canJump = true, canLift = true) ::
+    Player("Duncan", canJump = false, canLift = true) ::
+    Player("Lyle", canJump = false, canLift = true) ::
+    Player("Barney", canJump = false, canLift = true) ::
+    Player("Dick", canJump = false, canLift = true) ::
     Player("Franklyn", canJump = true, canLift = true) :: Nil
-  )
 
   def run(args: List[String]): IO[ExitCode] = for {
-      _       <- printWelcomeMessage
-      custom <- readCustomOrPreMadeTeamQuestion
-      team    <- if(custom) readTeam else IO(premadeTeam)
-      _       <- printTeam(team)
-      _       <- printOrganizePlayersInstructions
+      _         <- printWelcomeMessage
+      custom    <- readCustomOrPreMadeTeamQuestion
+      team      <- if(custom) readTeam else IO(premadeTeam)
+      _         <- printTeam(team)
+      _         <- printOrganizePlayersInstructions
+      orga      <- readOrganizePlayersCommand
+      lineout   <- IO { createLineOut(team, orga) }
+      maneuver  <- readManeuver // TODO more than one maneuver is possible
+      valid     <- validateManeuver(maneuver, lineout)
+      _         <- if(valid) printManeuver(maneuver) else IO { println("TODO") }
     } yield ExitCode.Success
 
   /**
@@ -38,13 +49,19 @@ object Main extends IOApp {
     input   <- IO { scala.io.StdIn.readLine == "1" }
   } yield input
 
+
+  def readManeuver: IO[Maneuver] = ???
+
+  def createLineOut(team: List[Player], orga: List[Int]): Lineout = ???
+
+  def readOrganizePlayersCommand: IO[List[Int]] = ???
+
   /**
     * Reads a team of 7 players from the command line.
     * @return
     */
-  def readTeam: IO[Team] = Team(Nil).iterateUntilM[IO](team =>
-    readPlayer.map(player => Team(team.players :+ player))
-  )(_.players.size >= 7)
+  def readTeam: IO[List[Player]] =
+    (Nil: List[Player]).iterateUntilM[IO](ps => readPlayer.map(p => ps :+ p))(_.size >= 7)
 
   /**
     * Reads a player from the command-line
@@ -52,7 +69,7 @@ object Main extends IOApp {
     */
   private def readPlayer: IO[Player] =
     (None: Option[Player]).iterateUntilM[IO](_ => readPlayerOpt)(p => p.isDefined).map(_.get)
-  
+
   /**
     * Reads a player from the command-line
     * @return the player or None
@@ -83,5 +100,7 @@ object Main extends IOApp {
         new InvalidInputError("Could not parse: " + input).asLeft
     }
   }
+
+  private def validateManeuver(man: Maneuver, initialLineout: Lineout): Validated[ManeuverInvalid, Maneuver]= ???
 
 }
