@@ -42,35 +42,17 @@ object Main extends IOApp {
     * Reads a team of 7 players from the command line.
     * @return
     */
-  def readTeam: IO[Team] = {
-    def go(team: Team): IO[Team] = {
-      if(team.players.size >= 7){
-        IO(println("Enough players!!")) >>= (_ => IO(team))
-      } else {
-        for {
-          player <- readPlayer
-          team   <- go(Team(team.players :+ player))
-        } yield team
-      }
-    }
-    go(Team(Nil))
-  }
+  def readTeam: IO[Team] = Team(Nil).iterateUntilM[IO](team =>
+    readPlayer.map(player => Team(team.players :+ player))
+  )(_.players.size >= 7)
 
   /**
     * Reads a player from the command-line
     * @return the player
     */
-  private def readPlayer: IO[Player] = {
-    def go(p: Option[Player]): IO[Option[Player]] = {
-      if(p.isDefined) IO(p)
-      else for {
-        playerOpt <- readPlayerOpt
-        player    <- go(playerOpt)
-      } yield player
-    }
-    go(None) map (_.get)
-  }
-
+  private def readPlayer: IO[Player] =
+    (None: Option[Player]).iterateUntilM[IO](_ => readPlayerOpt)(p => p.isDefined).map(_.get)
+  
   /**
     * Reads a player from the command-line
     * @return the player or None

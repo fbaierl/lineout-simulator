@@ -24,19 +24,24 @@ package object messages {
 
   def printPlayerInputInstructions: IO[Unit] = IO(println(
     """
-      |Input format:
-      |<name> [jump] [lift]
-      |The name of a player is mandatory and 'jump' and 'lift'
-      |are optional and describe the players capabilities."
+      |--------------------------------------
+      |---- Input format: -------------------
+      |-- <name> [jump] [lift] --------------
+      |-- The name of a player is mandatory -
+      |-- and 'jump' and 'lift' are ---------
+      |-- optional and describe the players -
+      |-- capabilities. ---------------------
+      |--------------------------------------
     """.stripMargin
   ))
 
   def printOrganizePlayersInstructions: IO[Unit] = IO(println(
     """
-      |Organize your players:
-      |Input format: List of numbers
-      |E.g. '2 3 2' will result in: 12 345 67
-      |
+      |--------------------------------------
+      |- Organize your players: -------------
+      |- Input format: List of numbers ------
+      |- '2 3 2' will result in: 12 345 67) -
+      |--------------------------------------
     """.stripMargin
   ))
 
